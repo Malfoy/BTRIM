@@ -6,11 +6,7 @@ You can use BCALM2 to compute such a graph.
 
 
 To do list:
-Multithreading
 remove ascII representation
-Cleaning folder
-outfile name
-CHRONO
 
 
 

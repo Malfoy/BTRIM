@@ -249,7 +249,7 @@ int main(int argc, char ** argv){
 	//INIT
 	if(argc<3){
 		cout<<"Usage:"<<endl;
-		cout<<"[Unitig file] [kmer size] [tipping length (100)] "<<endl;
+		cout<<"[Unitig file] [kmer size] [tipping length (100)] [core used (8)] [hash size, use 2^h files (8)] "<<endl;
 		exit(0);
 	}
 	auto start=system_clock::now();
@@ -259,9 +259,12 @@ int main(int argc, char ** argv){
 	uint kmerSize(stoi(argv[2]));
 	--kmerSize;
 	uint tipingSize(100);
+	uint coreUsed(8);
 	if(argc>=4){tipingSize=stoi(argv[3]);}
+	if(argc>=5){coreUsed=stoi(argv[4]);}
 	uint hashSize(8);//256 FILES
-	uint nbFiles(1<<(hashSize));
+	if(argc>=6){hashSize=stoi(argv[5]);}
+	uint nbFiles(1<<(hashSize-1));
 	vector<fstream> beginFiles(nbFiles),endFiles(nbFiles);
 	for(uint i(0); i< nbFiles; ++i){
 		beginFiles[i].open("begin"+to_string(i),fstream::out|fstream::in|fstream::binary|fstream::trunc);
@@ -272,7 +275,7 @@ int main(int argc, char ** argv){
 
 
 
-	cout<<"GO PARTITION"<<endl;
+	cout<<"Paritioning"<<endl;
 	//PARTITIONING
 	string begin,end,unitig,useless,beginRc,endRc;
 	uint64_t hashBegin, hashBeginRc, hashEnd, hashEndRc;
@@ -315,10 +318,12 @@ int main(int argc, char ** argv){
 
 
 
-	cout<<"GO TIPPING"<<endl;
+
+	cout<<"Tipping"<<endl;
 	//TIPPING
 	//FOREACH FILE
-	for(uint i(0); i< nbFiles; ++i){
+	#pragma omp parallel for num_threads(coreUsed)
+	for(uint i=0; i< nbFiles; ++i){
 		string content,wordSeq,wordInt,seqBegin,seqEnd;
 		vector<pair<string,uint32_t>> beginVector,endVector;
 		uint32_t numberRead;
@@ -372,8 +377,11 @@ int main(int argc, char ** argv){
 			if(seqBegin<seqEnd){
 				while(seqBegin==beginVector[indiceBegin].first){
 					if(unitigs[beginVector[indiceBegin].second].size()<2*tipingSize and unitigs[beginVector[indiceBegin].second].size()>0){
-						++tiping;
-						unitigs[beginVector[indiceBegin].second]={};
+						#pragma omp critical(dataupdate)
+						{
+							++tiping;
+							unitigs[beginVector[indiceBegin].second]={};
+						}
 					}
 					++indiceBegin;
 					if(indiceBegin==beginVector.size()){
@@ -386,8 +394,11 @@ int main(int argc, char ** argv){
 			if(seqBegin>seqEnd){
 				while(seqEnd==endVector[indiceEnd].first){
 					if(unitigs[endVector[indiceEnd].second].size()<2*tipingSize and unitigs[endVector[indiceEnd].second].size()>0){
-						++tiping;
-						unitigs[endVector[indiceEnd].second]={};
+						#pragma omp critical(dataupdate)
+						{
+							++tiping;
+							unitigs[endVector[indiceEnd].second]={};
+						}
 					}
 					++indiceEnd;
 					if(indiceEnd==endVector.size()){
@@ -402,9 +413,10 @@ int main(int argc, char ** argv){
 
 
 
-	cout<<"GO RECOMPACTION"<<endl;
+	cout<<"Recompaction"<<endl;
 	//RECOMPACTION
-	for(uint i(0); i< nbFiles; ++i){
+	#pragma omp parallel for num_threads(coreUsed)
+	for(uint i=0; i< nbFiles; ++i){
 		string content,wordSeq,wordInt,seqBegin,seqEnd;
 		vector<pair<string,uint32_t>> beginVector,endVector;
 		uint numberRead;
@@ -445,15 +457,18 @@ int main(int argc, char ** argv){
 			seqBegin=beginVector[indiceBegin].first;
 			seqEnd=endVector[indiceEnd].first;
 			if(seqBegin==seqEnd){
-				uint position1(getPosition(unitigs,beginVector[indiceBegin].second));
-				uint position2(getPosition(unitigs,endVector[indiceEnd].second));
-				if(position1!=position2){
-					string str1(bool2str(unitigs[position1]));
-					string str2(bool2str(unitigs[position2]));
-					string compacted(compaction(str1,str2,kmerSize));
-					unitigs[position1]=str2bool(compacted);
-					unitigs[position2]=int2bool(position1);
-					compactions++;
+				#pragma omp critical(dataupdate)
+				{
+					uint position1(getPosition(unitigs,beginVector[indiceBegin].second));
+					uint position2(getPosition(unitigs,endVector[indiceEnd].second));
+					if(position1!=position2){
+						string str1(bool2str(unitigs[position1]));
+						string str2(bool2str(unitigs[position2]));
+						string compacted(compaction(str1,str2,kmerSize));
+						unitigs[position1]=str2bool(compacted);
+						unitigs[position2]=int2bool(position1);
+						compactions++;
+					}
 				}
 				++indiceBegin;
 				++indiceEnd;
@@ -468,9 +483,11 @@ int main(int argc, char ** argv){
 				continue;
 			}
 		}
+		remove(("begin"+to_string(i)).c_str());
+		remove(("end"+to_string(i)).c_str());
 	}
 
-	ofstream out("out.fa");
+	ofstream out("tipped_"+input);
 	//OUTPUT
 	for(uint i(0); i<unitigs.size(); ++i){
 		if((not unitigs[i].empty()) and (unitigs[i].size()%2==0)){
@@ -478,40 +495,10 @@ int main(int argc, char ** argv){
 			out<<bool2str(unitigs[i])<<'\n';
 		}
 	}
+
 	cout<<"Tips removed:";intPrint(tiping);
 	cout<<"Unitigs compacted:";intPrint(compactions);
 	auto endTime=system_clock::now();
     auto waitedFor=endTime-start;
     cout<<"Waited for "<<duration_cast<seconds>(waitedFor).count()<<" seconds"<<endl;
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
