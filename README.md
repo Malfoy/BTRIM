@@ -1,13 +1,13 @@
 # BTRIM
-de Bruijn graph TRIMming tool
+## de Bruijn graph TRIMming tool
 
 This tool is made to remove "tips" (short dead ends) from a compacted de Bruijn graph.
 
 You can use BCALM2 to compute such a graph.
 
-  
  <br><br>
- 
+## Usage:
+[Unitig file] [kmer size] [tipping length (100)] [core used (1)] [hash size, use 2^h files (8)]  
  
  <br><br>
  
