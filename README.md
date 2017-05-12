@@ -5,15 +5,32 @@ This tool is made to remove "tips" (short dead ends) from a compacted de Bruijn 
 
 You can use BCALM2 to compute such a graph.
 
+  
+ <br><br>
+ 
+ 
+ <br><br>
+ 
+ <br><br>
+ 
+ 
+ <br><br>
+ 
+ <br><br>
+ 
+ <br><br>
+ 
 
 To do list:
 
-remove ascII representation
+-Remove ascII representation
 
-better multithreading
+-Better multithreading
 
 
-
+ <br><br>
+ 
+ <br><br>
 
 
 
