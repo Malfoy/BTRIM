@@ -223,6 +223,26 @@ uint getPosition(const vector<vector<bool>>& unitigs,uint n){
 }
 
 
+
+void str2bin(const string& str, char* cstr){
+	uint j(0),mult(1);
+	for(uint i(0); i<str.size(); ++i){
+		switch (str[i]){
+			//~ case 'A':cstr[j]+=0;break;
+			case 'C':cstr[j]+=1*mult;break;
+			case 'G':cstr[j]+=2*mult;break;
+			case 'T':cstr[j]+=3*mult;break;
+		}
+		mult<<=2;
+		if(mult>64){
+			++j;
+			mult=1;
+		}
+	}
+}
+
+
+
 vector<pair<string,uint32_t>> uniqueOnly(vector<pair<string,uint32_t>>& v){
 	bool unique(true);
 	vector<pair<string,uint32_t>> result;
@@ -249,7 +269,7 @@ int main(int argc, char ** argv){
 	//INIT
 	if(argc<3){
 		cout<<"Usage:"<<endl;
-		cout<<"[Unitig file] [kmer size] [tipping length (100)] [core used (8)] [hash size, use 2^h files (8)] "<<endl;
+		cout<<"[Unitig file] [kmer size] [tipping length (100)] [core used (1)] [hash size, use 2^h files (8)] "<<endl;
 		exit(0);
 	}
 	auto start=system_clock::now();
@@ -259,7 +279,7 @@ int main(int argc, char ** argv){
 	uint kmerSize(stoi(argv[2]));
 	--kmerSize;
 	uint tipingSize(100);
-	uint coreUsed(8);
+	uint coreUsed(1);
 	if(argc>=4){tipingSize=stoi(argv[3]);}
 	if(argc>=5){coreUsed=stoi(argv[4]);}
 	uint hashSize(8);//256 FILES
@@ -267,8 +287,8 @@ int main(int argc, char ** argv){
 	uint nbFiles(1<<(hashSize-1));
 	vector<fstream> beginFiles(nbFiles),endFiles(nbFiles);
 	for(uint i(0); i< nbFiles; ++i){
-		beginFiles[i].open("begin"+to_string(i),fstream::out|fstream::in|fstream::binary|fstream::trunc);
-		endFiles[i].open("end"+to_string(i),fstream::out|fstream::in|fstream::binary|fstream::trunc);
+		beginFiles[i].open(".begin"+to_string(i),fstream::out|fstream::in|fstream::binary|fstream::trunc);
+		endFiles[i].open(".end"+to_string(i),fstream::out|fstream::in|fstream::binary|fstream::trunc);
 	}
 	//THIS MEMORY USAGE CAN BE REMOVED
 	vector<vector<bool>> unitigs;
@@ -415,9 +435,9 @@ int main(int argc, char ** argv){
 
 	cout<<"Recompaction"<<endl;
 	//RECOMPACTION
-	#pragma omp parallel for num_threads(coreUsed)
+	#pragma omp parallel for num_threads(1)
 	for(uint i=0; i< nbFiles; ++i){
-		string content,wordSeq,wordInt,seqBegin,seqEnd;
+		string content,wordSeq,wordInt,seqBegin,seqEnd,str1,str2,compacted;
 		vector<pair<string,uint32_t>> beginVector,endVector;
 		uint numberRead;
 		uint sizeFileBegin(beginFiles[i].tellg());
@@ -462,9 +482,9 @@ int main(int argc, char ** argv){
 					uint position1(getPosition(unitigs,beginVector[indiceBegin].second));
 					uint position2(getPosition(unitigs,endVector[indiceEnd].second));
 					if(position1!=position2){
-						string str1(bool2str(unitigs[position1]));
-						string str2(bool2str(unitigs[position2]));
-						string compacted(compaction(str1,str2,kmerSize));
+						str1=(bool2str(unitigs[position1]));
+						str2=(bool2str(unitigs[position2]));
+						compacted=(compaction(str1,str2,kmerSize));
 						unitigs[position1]=str2bool(compacted);
 						unitigs[position2]=int2bool(position1);
 						compactions++;
@@ -483,8 +503,8 @@ int main(int argc, char ** argv){
 				continue;
 			}
 		}
-		remove(("begin"+to_string(i)).c_str());
-		remove(("end"+to_string(i)).c_str());
+		remove((".begin"+to_string(i)).c_str());
+		remove((".end"+to_string(i)).c_str());
 	}
 
 	ofstream out("tipped_"+input);

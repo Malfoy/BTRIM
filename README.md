@@ -7,7 +7,7 @@ You can use BCALM2 to compute such a graph.
 
 To do list:
 remove ascII representation
-
+better multithreading
 
 
 
