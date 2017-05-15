@@ -256,7 +256,7 @@ vector<pair<string,uint32_t>> uniqueOnly(vector<pair<string,uint32_t>>& v){
 			unique=true;
 		}
 	}
-	if(unique){
+	if(unique and v.size()>0){
 		result.push_back(v[v.size()-1]);
 	}
 	return result;
@@ -467,9 +467,9 @@ int main(int argc, char ** argv){
 			}
 			ii+=kmerSize+4;
 		}
-
 		sort(beginVector.begin(), beginVector.end());
 		beginVector=uniqueOnly(beginVector);
+
 		sort(endVector.begin(), endVector.end());
 		endVector=uniqueOnly(endVector);
 		uint indiceBegin(0), indiceEnd(0);
