@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=  -Wall -Wextra  -Ofast -std=c++11 -march=native -pthread -pipe -fopenmp
+CFLAGS=  -Wall -Wextra  -Ofast -std=c++11  -pthread -pipe -fopenmp
 LDFLAGS=-pthread -fopenmp
 
 

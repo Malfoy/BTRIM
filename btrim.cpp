@@ -31,20 +31,18 @@ using namespace chrono;
 
 
 
-void intPrint(uint64_t i){
-	if(i>9999){
-		if(i>9999999){
-			if(i>9999999999){
-				cout<<i/1000000000<<"G"<<endl;
-			}else{
-				cout<<i/1000000<<"M"<<endl;
-			}
-		}else{
-			cout<<i/1000<<"k"<<endl;
-		}
-	}else{
-		cout<<i<<endl;
+string intToString(uint64_t n){
+	if(n<1000){
+		return to_string(n);
 	}
+	string end(to_string(n%1000));
+	if(end.size()==3){
+		return intToString(n/1000)+","+end;
+	}
+	if(end.size()==2){
+		return intToString(n/1000)+",0"+end;
+	}
+	return intToString(n/1000)+",00"+end;
 }
 
 
@@ -516,8 +514,8 @@ int main(int argc, char ** argv){
 		}
 	}
 
-	cout<<"Tips removed:";intPrint(tiping);
-	cout<<"Unitigs compacted:";intPrint(compactions);
+	cout<<"Tips removed:"+intToString(tiping)<<endl;
+	cout<<"Unitigs compacted:"+intToString(compactions)<<endl;
 	auto endTime=system_clock::now();
     auto waitedFor=endTime-start;
     cout<<"Waited for "<<duration_cast<seconds>(waitedFor).count()<<" seconds"<<endl;
