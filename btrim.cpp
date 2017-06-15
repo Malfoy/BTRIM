@@ -31,6 +31,7 @@ using namespace chrono;
 
 
 
+
 string intToString(uint64_t n){
 	if(n<1000){
 		return to_string(n);
@@ -152,9 +153,11 @@ string bool2str(const vector<bool>& v){
 }
 
 
+
 uint32_t xs(uint32_t y){
 	y^=(y<<13); y^=(y>>17); return (y^=(y<<15));
 }
+
 
 
 char randNucle(char c){
@@ -262,16 +265,29 @@ vector<pair<string,uint32_t>> uniqueOnly(vector<pair<string,uint32_t>>& v){
 
 
 
+double parseCoverage(const string& str){
+	size_t pos(str.find("KM:f:"));
+	uint i(1);
+	while(str[i+pos+5]!=' '){
+		++i;
+	}
+	return stof(str.substr(pos+5,i));
+}
+
+
+
 //ONE FUNCTION TO RULE THEM ALL
 int main(int argc, char ** argv){
 	//INIT
 	if(argc<3){
 		cout<<"Usage:"<<endl;
-		cout<<"[Unitig file] [kmer size] [tipping length (100)] [core used (1)] [hash size, use 2^h files (8)] "<<endl;
+		cout<<"[Unitig file] [kmer size] [tipping length (100)]  [core used (1)] [hash size, use 2^h files (8)] [bubble min coverage]"<<endl;
 		exit(0);
 	}
+	bool bubbleRemoval(false);
+	int bubbleCoverage(-1);
 	auto start=system_clock::now();
-	uint64_t tiping(0),compactions(0);
+	uint64_t tiping(0),compactions(0),bubbleRemoved(0);
 	string input(argv[1]);
 	ifstream inUnitigs(input);
 	uint kmerSize(stoi(argv[2]));
@@ -282,6 +298,7 @@ int main(int argc, char ** argv){
 	if(argc>=5){coreUsed=stoi(argv[4]);}
 	uint hashSize(8);//256 FILES
 	if(argc>=6){hashSize=stoi(argv[5]);}
+	if(argc>=7){bubbleCoverage=stoi(argv[6]);bubbleRemoval=true;}
 	uint nbFiles(1<<(hashSize-1));
 	vector<fstream> beginFiles(nbFiles),endFiles(nbFiles);
 	for(uint i(0); i< nbFiles; ++i){
@@ -290,6 +307,7 @@ int main(int argc, char ** argv){
 	}
 	//THIS MEMORY USAGE CAN BE REMOVED
 	vector<vector<bool>> unitigs;
+	vector<uint> coverages;
 
 
 
@@ -305,7 +323,13 @@ int main(int argc, char ** argv){
 		if(unitig.size()<kmerSize){
 			continue;
 		}
+		//~ if(bubbleRemoval and unitig.size()>(2*kmerSize-1) and unitig.size()< tipingSize and parseCoverage(useless)<bubbleCoverage){
+		if(bubbleRemoval and unitig.size()>=(2*kmerSize-1) and parseCoverage(useless)<bubbleCoverage){
+			bubbleRemoved++;
+			continue;
+		}
 		unitigs.push_back(str2bool(unitig));
+
 
 		begin=unitig.substr(0,kmerSize);
 		beginRc=revComp(begin);
@@ -515,8 +539,11 @@ int main(int argc, char ** argv){
 	}
 
 	cout<<"Tips removed:"+intToString(tiping)<<endl;
+	if(bubbleRemoval){
+		cout<<"Bubble removed:"+intToString(bubbleRemoved)<<endl;
+	}
 	cout<<"Unitigs compacted:"+intToString(compactions)<<endl;
 	auto endTime=system_clock::now();
     auto waitedFor=endTime-start;
-    cout<<"Waited for "<<duration_cast<seconds>(waitedFor).count()<<" seconds"<<endl;
+    cout<<"Cleaned in "<<duration_cast<seconds>(waitedFor).count()<<" seconds"<<endl;
 }
