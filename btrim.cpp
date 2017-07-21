@@ -323,7 +323,6 @@ int main(int argc, char ** argv){
 		if(unitig.size()<kmerSize){
 			continue;
 		}
-		//~ if(bubbleRemoval and unitig.size()>(2*kmerSize-1) and unitig.size()< tipingSize and parseCoverage(useless)<bubbleCoverage){
 		if(bubbleRemoval and unitig.size()>=(2*kmerSize-1) and parseCoverage(useless)<bubbleCoverage){
 			bubbleRemoved++;
 			continue;
@@ -418,7 +417,7 @@ int main(int argc, char ** argv){
 			//~ cout<<"golop2"<<endl;
 			if(seqBegin<seqEnd){
 				while(seqBegin==beginVector[indiceBegin].first){
-					if(unitigs[beginVector[indiceBegin].second].size()<2*tipingSize and unitigs[beginVector[indiceBegin].second].size()>0){
+					if(unitigs[beginVector[indiceBegin].second].size()<tipingSize and unitigs[beginVector[indiceBegin].second].size()>0){
 						#pragma omp critical(dataupdate)
 						{
 							++tiping;
@@ -435,7 +434,7 @@ int main(int argc, char ** argv){
 			//~ cout<<"golopp3"<<endl;
 			if(seqBegin>seqEnd){
 				while(seqEnd==endVector[indiceEnd].first){
-					if(unitigs[endVector[indiceEnd].second].size()<2*tipingSize and unitigs[endVector[indiceEnd].second].size()>0){
+					if(unitigs[endVector[indiceEnd].second].size()<tipingSize and unitigs[endVector[indiceEnd].second].size()>0){
 						#pragma omp critical(dataupdate)
 						{
 							++tiping;
