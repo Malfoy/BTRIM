@@ -267,7 +267,7 @@ vector<pair<string,uint32_t>> uniqueOnly(vector<pair<string,uint32_t>>& v){
 
 double parseCoverage(const string& str){
 	size_t pos(str.find("km:f:"));
-	if(pos==string::npos)){
+	if(pos==string::npos){
 		pos=(str.find("KM:f:"));
 	}
 	uint i(1);
