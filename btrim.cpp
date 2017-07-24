@@ -266,7 +266,7 @@ vector<pair<string,uint32_t>> uniqueOnly(vector<pair<string,uint32_t>>& v){
 
 
 double parseCoverage(const string& str){
-	size_t pos(str.find("km:f:"));
+	size_t pos(str.find("KM:f:"));
 	uint i(1);
 	while(str[i+pos+5]!=' '){
 		++i;
