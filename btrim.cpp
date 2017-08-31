@@ -279,6 +279,7 @@ double parseCoverage(const string& str){
 
 
 
+//TODO multiple function and real parser
 //ONE FUNCTION TO RULE THEM ALL
 int main(int argc, char ** argv){
 	//INIT
@@ -297,7 +298,7 @@ int main(int argc, char ** argv){
 	--kmerSize;
 	uint tipingSize(100);
 	uint coreUsed(1);
-	if(argc>=4){tipingSize=stoi(argv[3]);}
+	if(argc>=4){tipingSize=2*stoi(argv[3]);}
 	if(argc>=5){coreUsed=stoi(argv[4]);}
 	uint hashSize(8);//256 FILES
 	if(argc>=6){hashSize=stoi(argv[5]);}
