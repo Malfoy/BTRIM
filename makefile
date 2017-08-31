@@ -14,9 +14,15 @@ LDFLAGS=-g
 endif
 
 
-EXEC=btrim
+EXEC=btrim bubble
 
 all: $(EXEC)
+
+bubble:   bubble.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+bubble.o:   btrimBubble.cpp
+	$(CC) -o $@ -c $< $(CFLAGS)
 
 btrim:   btrim.o
 	$(CC) -o $@ $^ $(LDFLAGS)
