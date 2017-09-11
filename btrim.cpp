@@ -541,11 +541,11 @@ int main(int argc, char ** argv){
 		}
 	}
 
-	cout<<"Tips removed:"+intToString(tiping)<<endl;
 	if(bubbleRemoval){
-		cout<<"Bubble removed:"+intToString(bubbleRemoved)<<endl;
+		cout<<"Unitig filtered: "+intToString(bubbleRemoved)<<endl;
 	}
-	cout<<"Unitigs compacted:"+intToString(compactions)<<endl;
+	cout<<"Tips removed: "+intToString(tiping)<<endl;
+	cout<<"Unitigs compacted: "+intToString(compactions)<<endl;
 	auto endTime=system_clock::now();
     auto waitedFor=endTime-start;
     cout<<"Cleaned in "<<duration_cast<seconds>(waitedFor).count()<<" seconds"<<endl;

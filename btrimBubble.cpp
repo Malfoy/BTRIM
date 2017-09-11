@@ -198,6 +198,19 @@ string compactionNoRecur(const string& seq1,const string& seq2, uint k){
 }
 
 
+uint missmatchNumber(const string& seq1, const string& seq2, unsigned int n){
+	uint miss(0);
+	for(uint i(0); i<seq2.size(); ++i){
+		if(seq2[i]!=seq1[i]){
+			if(++miss>n){
+				return miss;
+			}
+		}
+	}
+	return miss;
+}
+
+
 string compaction(const string& seq1,const string& seq2, uint k){
 	//~ cout<<seq1<<" "<<seq2<<endl;
 	uint s1(seq1.size()),s2(seq2.size());
@@ -423,20 +436,21 @@ int main(int argc, char ** argv){
 				//TODO POLYPLOID
 				//TODO CHECK DISTANCE
 				if(numberBeg==1 and numberEnd==2){
-					if(unitigs[endVector[indiceEnd-1].second].size()==unitigs[endVector[indiceEnd-2].second].size() and unitigs[endVector[indiceEnd-1].second].size()>2*(2*kmerSize-1)){
-						unitigs[endVector[indiceEnd-2].second]={};
-						bubblePopped++;
+					if(unitigs[endVector[indiceEnd-1].second].size()==unitigs[endVector[indiceEnd-2].second].size() and unitigs[endVector[indiceEnd-1].second].size()>=2*(2*kmerSize-1)){
+						if(missmatchNumber(bool2str(unitigs[endVector[indiceEnd-2].second]), bool2str(unitigs[endVector[indiceEnd-1].second]), unitigs[endVector[indiceEnd-2].second].size()/100) < unitigs[endVector[indiceEnd-2].second].size()/100){
+							unitigs[endVector[indiceEnd-2].second]={};
+							bubblePopped++;
+						}
 					}
-
-
 					continue;
 				}
 
 				if(numberEnd==1 and numberBeg==2){
-					if(unitigs[beginVector[indiceBegin-1].second].size()==unitigs[beginVector[indiceBegin-2].second].size() and unitigs[beginVector[indiceBegin-1].second].size()>2*(2*kmerSize-1)){
-						unitigs[beginVector[indiceBegin-2].second]={};
-						bubblePopped++;
-
+					if(unitigs[beginVector[indiceBegin-1].second].size()==unitigs[beginVector[indiceBegin-2].second].size() and unitigs[beginVector[indiceBegin-1].second].size()>=2*(2*kmerSize-1)){
+						if(missmatchNumber(bool2str(unitigs[beginVector[indiceBegin-2].second]), bool2str(unitigs[beginVector[indiceBegin-1].second]), unitigs[beginVector[indiceBegin-2].second].size()/100) < unitigs[beginVector[indiceBegin-2].second].size()/100){
+							unitigs[beginVector[indiceBegin-2].second]={};
+							bubblePopped++;
+						}
 					}
 					continue;
 				}
@@ -556,7 +570,7 @@ int main(int argc, char ** argv){
 		remove((".end"+to_string(i)).c_str());
 	}
 
-	ofstream out("tipped_"+input);
+	ofstream out("crushed_"+input);
 	//OUTPUT
 	for(uint i(0); i<unitigs.size(); ++i){
 		if((not unitigs[i].empty()) and (unitigs[i].size()%2==0)){

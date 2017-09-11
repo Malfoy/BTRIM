@@ -14,7 +14,7 @@ LDFLAGS=-g
 endif
 
 
-EXEC=btrim bubble
+EXEC=btrim bubble badvisor
 
 all: $(EXEC)
 
@@ -22,6 +22,12 @@ bubble:   bubble.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 bubble.o:   btrimBubble.cpp
+	$(CC) -o $@ -c $< $(CFLAGS)
+
+badvisor:   badvisor.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+badvisor.o:   Badvisor.cpp
 	$(CC) -o $@ -c $< $(CFLAGS)
 
 btrim:   btrim.o
