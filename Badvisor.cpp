@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
 		exit(0);
 	}
 	string readsFile(argv[1]),line,lineF0,lineF1;
+	uint coverageAsked(stoi(argv[2]));
 	vector<vector<uint>> histograms;
 	vector<uint> numberKmerDistinct,minimumList;
 	uint frac(1000);
@@ -67,7 +68,7 @@ int main(int argc, char *argv[]) {
 	for(int i(0);i<histograms.size() and cont;++i){
 		for(uint ii(0);ii<histograms[i].size() and cont;++ii){
 			if(histograms[i][ii]<=histograms[i][ii+1]){
-				if(ii>=5){
+				if(ii>=coverageAsked){
 					minimumList.push_back(ii);
 				}else{
 					cont=false;
