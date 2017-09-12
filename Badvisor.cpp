@@ -77,6 +77,6 @@ int main(int argc, char *argv[]) {
 			}
 		}
 	}
-	cout<<minimumList.size()*10+1;
+	cout<<minimumList.size()*10+11;
     return 0;
 }
