@@ -327,7 +327,7 @@ int main(int argc, char ** argv){
 		if(unitig.size()<kmerSize){
 			continue;
 		}
-		if(bubbleRemoval and unitig.size()>=(2*kmerSize-1) and parseCoverage(useless)<bubbleCoverage){
+		if(bubbleRemoval and parseCoverage(useless)<bubbleCoverage){
 			bubbleRemoved++;
 			continue;
 		}
