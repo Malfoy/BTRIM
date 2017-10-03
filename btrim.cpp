@@ -22,6 +22,8 @@
 #include <algorithm>
 #include <bitset>
 #include <chrono>
+#include <unistd.h>
+
 
 
 
@@ -277,33 +279,72 @@ double parseCoverage(const string& str){
 	return stof(str.substr(pos+5,i));
 }
 
+void usage(){
+	cout<<"Usage:"<<endl;
+		cout<<"-u [Unitig file]\n"
+		<<"-k [kmer size]\n"
+		<<"-t [tipping length (none)]\n"
+		<<"-c [core used (1)]\n"
+		<<"-h [hash size, use 2^h files (8 for 256 files)]\n"
+		<<"-f [unitig min coverage (none)]\n"
+		<<"-a [edge filtering ratio (none)]\n"
+		<<endl;
+}
 
 
-//TODO multiple function and real parser
+
+//TODO multiple functions
 //ONE FUNCTION TO RULE THEM ALL
 int main(int argc, char ** argv){
 	//INIT
 	if(argc<3){
-		cout<<"Usage:"<<endl;
-		cout<<"[Unitig file] [kmer size] [tipping length (100)]  [core used (1)] [hash size, use 2^h files (8)] [bubble min coverage]"<<endl;
+		usage();
 		exit(0);
 	}
-	bool bubbleRemoval(false);
-	int bubbleCoverage(-1);
+	bool coverageCleaning(false);
+	int unitigThreshold(-1);
 	auto start=system_clock::now();
-	uint64_t tiping(0),compactions(0),bubbleRemoved(0);
-	string input(argv[1]);
-	ifstream inUnitigs(input);
-	uint kmerSize(stoi(argv[2]));
-	--kmerSize;
-	uint tipingSize(100);
+	uint64_t tiping(0),compactions(0),unitigFiltered(0);
+	string inputUnitig;
+	//~ ifstream inUnitigs(inputUnitig);
+	uint kmerSize;
+	uint tipingSize(1);
 	uint coreUsed(1);
-	if(argc>=4){tipingSize=2*stoi(argv[3]);}
-	if(argc>=5){coreUsed=stoi(argv[4]);}
 	uint hashSize(8);//256 FILES
-	if(argc>=6){hashSize=stoi(argv[5]);}
-	if(argc>=7){bubbleCoverage=stoi(argv[6]);bubbleRemoval=true;}
 	uint nbFiles(1<<(hashSize-1));
+	uint ratioCoverage(10);
+	bool cleanRationEdge(false);
+	char c;
+	while ((c = getopt (argc, argv, "u:k:t:c:h:f:a:")) != -1){
+		switch(c){
+		case 'u':
+			inputUnitig=optarg;
+			break;
+		case 'k':
+			kmerSize=stoi(optarg);
+			--kmerSize;
+			break;
+		case 't':
+			tipingSize=2*stoi(optarg);
+			break;
+		case 'c':
+			coreUsed=stoi(optarg);
+			break;
+		case 'h':
+			hashSize=stoi(optarg);
+			break;
+		case 'f':
+			unitigThreshold=stoi(optarg);
+			coverageCleaning=true;
+			break;
+		case 'a':
+			ratioCoverage=stoi(optarg);
+			cleanRationEdge=true;
+			break;
+		}
+	}
+
+	ifstream inUnitigs(inputUnitig);
 	vector<fstream> beginFiles(nbFiles),endFiles(nbFiles);
 	for(uint i(0); i< nbFiles; ++i){
 		beginFiles[i].open(".begin"+to_string(i),fstream::out|fstream::in|fstream::binary|fstream::trunc);
@@ -327,11 +368,14 @@ int main(int argc, char ** argv){
 		if(unitig.size()<kmerSize){
 			continue;
 		}
-		if(bubbleRemoval and unitig.size()>=(2*kmerSize-1) and parseCoverage(useless)<bubbleCoverage){
-			bubbleRemoved++;
+		uint coverage=parseCoverage(useless);
+		if(coverageCleaning and coverage<unitigThreshold){
+			unitigFiltered++;
 			continue;
 		}
 		unitigs.push_back(str2bool(unitig));
+		//~ cout<<coverage<<endl;
+		coverages.push_back(coverage);
 
 
 		begin=unitig.substr(0,kmerSize);
@@ -399,21 +443,68 @@ int main(int argc, char ** argv){
 		sort(beginVector.begin(), beginVector.end());
 		sort(endVector.begin(), endVector.end());
 		uint indiceBegin(0), indiceEnd(0);
+		vector<pair<uint,uint>> coverageComparison;
 		while(indiceBegin<beginVector.size() and indiceEnd<endVector.size()){
 			//~ cout<<"golopp"<<endl;
 			seqBegin=beginVector[indiceBegin].first;
 			seqEnd=endVector[indiceEnd].first;
 			if(seqBegin==seqEnd){
+				coverageComparison={};
+				//if two begin and one is ten time larger remove the lower
 				while(seqBegin==beginVector[indiceBegin].first){
+					if(cleanRationEdge){
+						coverageComparison.push_back({coverages[beginVector[indiceBegin].second],beginVector[indiceBegin].second});
+					}
 					++indiceBegin;
+					//~ cout<<"go1"<<endl;
 					if(indiceBegin==beginVector.size()){
 						break;
 					}
+					//~ cout<<coverages.size()<<" "<< beginVector[indiceBegin].second <<endl;
+
+					//~ cout<<"go1.6"<<endl;
 				}
+
+				if(coverageComparison.size()>1){
+					//~ cout<<"go2"<<endl;
+					sort(coverageComparison.begin(),coverageComparison.end());
+					//~ cout<<coverageComparison[0].first<<" "<<coverageComparison[1].first<<endl;
+					if(ratioCoverage*coverageComparison[0].first<coverageComparison[1].first){
+						//~ cout<<"go3"<<endl;
+						for(uint iii(1);iii<coverageComparison.size();++iii){
+							#pragma omp critical(dataupdate)
+							{
+								unitigs[coverageComparison[iii].second]={};
+							}
+						}
+					}
+				}
+
+				coverageComparison={};
 				while(seqEnd==endVector[indiceEnd].first){
+					if(cleanRationEdge){
+						coverageComparison.push_back({coverages[endVector[indiceEnd].second],endVector[indiceEnd].second});
+					}
 					++indiceEnd;
 					if(indiceEnd==endVector.size()){
 						break;
+					}
+
+					//~ cout<<"go1.5"<<endl;
+				}
+
+				if(coverageComparison.size()>1){
+					//~ cout<<"go2"<<endl;
+					sort(coverageComparison.begin(),coverageComparison.end());
+					//~ cout<<coverageComparison[0].first<<" "<<coverageComparison[1].first<<endl;
+					if(ratioCoverage*coverageComparison[0].first<coverageComparison[1].first){
+						//~ cout<<"go3"<<endl;
+						for(uint iii(1);iii<coverageComparison.size();++iii){
+							#pragma omp critical(dataupdate)
+							{
+								unitigs[coverageComparison[iii].second]={};
+							}
+						}
 					}
 				}
 				continue;
@@ -532,7 +623,7 @@ int main(int argc, char ** argv){
 		remove((".end"+to_string(i)).c_str());
 	}
 
-	ofstream out("tipped_"+input);
+	ofstream out("tipped_"+inputUnitig);
 	//OUTPUT
 	for(uint i(0); i<unitigs.size(); ++i){
 		if((not unitigs[i].empty()) and (unitigs[i].size()%2==0)){
@@ -541,8 +632,8 @@ int main(int argc, char ** argv){
 		}
 	}
 
-	if(bubbleRemoval){
-		cout<<"Unitig filtered: "+intToString(bubbleRemoved)<<endl;
+	if(coverageCleaning){
+		cout<<"Unitig filtered: "+intToString(unitigFiltered)<<endl;
 	}
 	cout<<"Tips removed: "+intToString(tiping)<<endl;
 	cout<<"Unitigs compacted: "+intToString(compactions)<<endl;
