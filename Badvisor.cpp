@@ -48,6 +48,10 @@ int main(int argc, char *argv[]) {
 		}
 		getline(stream,lineF1,'	');
 		getline(stream,lineF1);
+		uint F1(stoi(lineF1));
+		if(F1==0){
+			break;
+		}
 		getline(stream,lineF0,'	');
 		lineF0="";
 		getline(stream,lineF0);
