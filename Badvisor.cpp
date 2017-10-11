@@ -40,7 +40,10 @@ int main(int argc, char *argv[]) {
 	uint64_t coverageAsked(stol(argv[2]));
 	vector<vector<uint64_t>> histograms;
 	vector<uint64_t> numberKmerDistinct,minimumList;
-	uint frac(1000);
+	double frac(2);
+	if(argc>2){
+		frac=stol(argv[3]);
+	}
 	for(uint k(21);k<201;k+=10){
 		ifstream stream(readsFile+"_k"+to_string(k)+".hist");
 		if(not stream.is_open()){
@@ -71,7 +74,7 @@ int main(int argc, char *argv[]) {
 	bool cont(true);
 	for(int i(0);i<histograms.size() and cont;++i){
 		for(uint ii(0);ii<histograms[i].size() and cont;++ii){
-			if(histograms[i][ii]<=histograms[i][ii+1]){
+			if(histograms[i][ii]<=histograms[i][ii+1]*frac){
 				if(ii>=coverageAsked){
 					minimumList.push_back(ii);
 				}else{
