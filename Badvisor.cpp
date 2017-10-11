@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
 		}
 		getline(stream,lineF1,'	');
 		getline(stream,lineF1);
-		uint F1(stoi(lineF1));
+		uint64_t F1(stol(lineF1));
 		if(F1==0){
 			break;
 		}
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 		histograms.push_back(abundances);
 	}
 	bool cont(true);
-	for(int i(0);i<histograms.size() and cont;++i){
+	for(uint i(0);i<histograms.size() and cont;++i){
 		for(uint ii(0);ii<histograms[i].size() and cont;++ii){
 			if(histograms[i][ii]<=histograms[i][ii+1]*frac){
 				if(ii>=coverageAsked){
