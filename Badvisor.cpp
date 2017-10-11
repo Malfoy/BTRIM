@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
 	vector<uint64_t> numberKmerDistinct,minimumList;
 	double frac(2);
 	if(argc>2){
-		frac=stol(argv[3]);
+		frac=stod(argv[3]);
 	}
 	for(uint k(21);k<201;k+=10){
 		ifstream stream(readsFile+"_k"+to_string(k)+".hist");
