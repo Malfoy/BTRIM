@@ -313,9 +313,10 @@ int main(int argc, char ** argv){
 	uint hashSize(8);//256 FILES
 	uint nbFiles(1<<(hashSize-1));
 	uint ratioCoverage(10);
+	string outFile("out_tipped");
 	bool cleanRationEdge(false);
 	char c;
-	while ((c = getopt (argc, argv, "u:k:t:c:h:f:a:")) != -1){
+	while ((c = getopt (argc, argv, "u:k:t:c:h:f:a:o:")) != -1){
 		switch(c){
 		case 'u':
 			inputUnitig=optarg;
@@ -337,12 +338,19 @@ int main(int argc, char ** argv){
 			unitigThreshold=stoi(optarg);
 			coverageCleaning=true;
 			break;
+		case 'o':
+			outFile=optarg;
+			break;
 		case 'a':
 			ratioCoverage=stoi(optarg);
 			cleanRationEdge=true;
 			break;
 		}
 	}
+
+
+	ofstream out(outFile);
+
 
 	ifstream inUnitigs(inputUnitig);
 	vector<fstream> beginFiles(nbFiles),endFiles(nbFiles);
@@ -624,7 +632,6 @@ int main(int argc, char ** argv){
 		remove((".end"+to_string(i)).c_str());
 	}
 
-	ofstream out("tipped_"+inputUnitig);
 	//OUTPUT
 	for(uint i(0); i<unitigs.size(); ++i){
 		if((not unitigs[i].empty()) and (unitigs[i].size()%2==0)){
