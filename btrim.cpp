@@ -282,75 +282,22 @@ double parseCoverage(const string& str){
 void usage(){
 	cout<<"Usage:"<<endl;
 		cout<<"-u [Unitig file]\n"
-		<<"-k [kmer size]\n"
-		<<"-t [tipping length (none)]\n"
-		<<"-c [core used (1)]\n"
-		<<"-h [hash size, use 2^h files (8 for 256 files)]\n"
-		<<"-f [unitig min coverage (none)]\n"
-		<<"-a [edge filtering ratio (none)]\n"
+		<<"-k [Kmer size]\n"
+		<<"-t [Tipping length (none)]\n"
+		<<"-T [Cleaning Step (1)]\n"
+		<<"-c [Core used (1)]\n"
+		<<"-h [Hash size, use 2^h files (8 for 256 files)]\n"
+		<<"-f [Unitig min coverage (none)]\n"
+		<<"-a [Edge filtering ratio (none)]\n"
+		<<"-o [Output file (out_tipped)]\n"
 		<<endl;
 }
 
 
-
-//TODO multiple functions
-//ONE FUNCTION TO RULE THEM ALL
-int main(int argc, char ** argv){
-	//INIT
-	if(argc<3){
-		usage();
-		exit(0);
-	}
-	bool coverageCleaning(false);
-	int unitigThreshold(-1);
+void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int coreUsed,int unitigThreshold,int ratioCoverage,int kmerSize){
 	auto start=system_clock::now();
 	uint64_t tiping(0),compactions(0),unitigFiltered(0);
-	string inputUnitig;
-	//~ ifstream inUnitigs(inputUnitig);
-	uint kmerSize;
-	uint tipingSize(1);
-	uint coreUsed(1);
-	uint hashSize(8);//256 FILES
-	uint nbFiles(1<<(hashSize-1));
-	uint ratioCoverage(10);
-	string outFile("out_tipped");
-	bool cleanRationEdge(false);
-	char c;
-	while ((c = getopt (argc, argv, "u:k:t:c:h:f:a:o:")) != -1){
-		switch(c){
-		case 'u':
-			inputUnitig=optarg;
-			break;
-		case 'k':
-			kmerSize=stoi(optarg);
-			--kmerSize;
-			break;
-		case 't':
-			tipingSize=2*stoi(optarg);
-			break;
-		case 'c':
-			coreUsed=stoi(optarg);
-			break;
-		case 'h':
-			hashSize=stoi(optarg);
-			break;
-		case 'f':
-			unitigThreshold=stoi(optarg);
-			coverageCleaning=true;
-			break;
-		case 'o':
-			outFile=optarg;
-			break;
-		case 'a':
-			ratioCoverage=stoi(optarg);
-			cleanRationEdge=true;
-			break;
-		}
-	}
-
-
 	ofstream out(outFile);
-
 
 	ifstream inUnitigs(inputUnitig);
 	vector<fstream> beginFiles(nbFiles),endFiles(nbFiles);
@@ -377,10 +324,10 @@ int main(int argc, char ** argv){
 			continue;
 		}
 		uint coverage=parseCoverage(useless);
-		if(coverageCleaning and coverage<unitigThreshold){
-			unitigFiltered++;
-			continue;
-		}
+		//~ if(unitigThreshold>1 and coverage<unitigThreshold){
+			//~ unitigFiltered++;
+			//~ continue;
+		//~ }
 		unitigs.push_back(str2bool(unitig));
 		//~ cout<<coverage<<endl;
 		coverages.push_back(coverage);
@@ -412,8 +359,6 @@ int main(int argc, char ** argv){
 		}
 		++unitigIndice;
 	}
-
-
 
 
 	cout<<"Tipping"<<endl;
@@ -460,7 +405,7 @@ int main(int argc, char ** argv){
 				coverageComparison={};
 				//if two begin and one is ten time larger remove the lower
 				while(seqBegin==beginVector[indiceBegin].first){
-					if(cleanRationEdge){
+					if(ratioCoverage>1){
 						coverageComparison.push_back({coverages[beginVector[indiceBegin].second],beginVector[indiceBegin].second});
 					}
 					++indiceBegin;
@@ -490,7 +435,7 @@ int main(int argc, char ** argv){
 
 				coverageComparison={};
 				while(seqEnd==endVector[indiceEnd].first){
-					if(cleanRationEdge){
+					if(ratioCoverage>1){
 						coverageComparison.push_back({coverages[endVector[indiceEnd].second],endVector[indiceEnd].second});
 					}
 					++indiceEnd;
@@ -553,7 +498,6 @@ int main(int argc, char ** argv){
 			}
 		}
 	}
-
 
 
 
@@ -634,13 +578,15 @@ int main(int argc, char ** argv){
 
 	//OUTPUT
 	for(uint i(0); i<unitigs.size(); ++i){
-		if((not unitigs[i].empty()) and (unitigs[i].size()%2==0)){
+		if((not unitigs[i].empty()) and (unitigs[i].size()%2==0) and unitigThreshold>1 and coverages[i]>unitigThreshold){
 			out<<">km:f:"<<coverages[i]<<"\n";
 			out<<bool2str(unitigs[i])<<'\n';
+		}else{
+			unitigFiltered++;
 		}
 	}
 
-	if(coverageCleaning){
+	if(unitigThreshold>1){
 		cout<<"Unitig filtered: "+intToString(unitigFiltered)<<endl;
 	}
 	cout<<"Tips removed: "+intToString(tiping)<<endl;
@@ -648,4 +594,69 @@ int main(int argc, char ** argv){
 	auto endTime=system_clock::now();
     auto waitedFor=endTime-start;
     cout<<"Cleaned in "<<duration_cast<seconds>(waitedFor).count()<<" seconds"<<endl;
+}
+
+
+
+//TODO multiple functions
+//ONE FUNCTION TO RULE THEM ALL
+int main(int argc, char ** argv){
+	//INIT
+	if(argc<3){
+		usage();
+		exit(0);
+	}
+	int unitigThreshold(1);
+	string inputUnitig;
+	//~ ifstream inUnitigs(inputUnitig);
+	uint kmerSize;
+	uint tipingSize(1);
+	uint tipingStep(1);
+	uint coreUsed(1);
+	uint hashSize(8);//256 FILES
+	uint nbFiles(1<<(hashSize-1));
+	uint ratioCoverage(1);
+	string outFile("out_tipped");
+	char c;
+	while ((c = getopt (argc, argv, "u:k:t:c:h:f:a:o:T:")) != -1){
+		switch(c){
+		case 'u':
+			inputUnitig=optarg;
+			break;
+		case 'k':
+			kmerSize=stoi(optarg);
+			--kmerSize;
+			break;
+		case 't':
+			tipingSize=2*stoi(optarg);
+			break;
+		case 'T':
+			tipingStep=stoi(optarg);
+			break;
+		case 'c':
+			coreUsed=stoi(optarg);
+			break;
+		case 'h':
+			hashSize=stoi(optarg);
+			break;
+		case 'f':
+			unitigThreshold=stoi(optarg);
+			break;
+		case 'o':
+			outFile=optarg;
+			break;
+		case 'a':
+			ratioCoverage=stoi(optarg);
+			break;
+		}
+	}
+	for(uint i(1);i<=tipingStep;++i){
+		if(i==tipingStep){
+			cleaning( outFile,  inputUnitig, nbFiles, tipingSize, coreUsed, unitigThreshold, ratioCoverage, kmerSize);
+		}else{
+			cleaning( outFile+to_string(i),  inputUnitig, nbFiles, tipingSize, coreUsed, unitigThreshold, ratioCoverage, kmerSize);
+			inputUnitig=outFile+to_string(i);
+		}
+	}
+
 }
