@@ -32,7 +32,7 @@ void printInt(const int value){
 
 
 int main(int argc, char *argv[]) {
-	if(argc<2){
+	if(argc<3){
 		help();
 		exit(0);
 	}
