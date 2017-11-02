@@ -578,7 +578,7 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 
 	//OUTPUT
 	for(uint i(0); i<unitigs.size(); ++i){
-		if((not unitigs[i].empty()) and (unitigs[i].size()%2==0) and coverages[i]>unitigThreshold){
+		if((not unitigs[i].empty()) and (unitigs[i].size()%2==0) and coverages[i]>=unitigThreshold){
 			out<<">km:f:"<<coverages[i]<<"\n";
 			out<<bool2str(unitigs[i])<<'\n';
 		}else{
