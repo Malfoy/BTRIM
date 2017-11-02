@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
 	uint64_t coverageAsked(stol(argv[2]));
 	vector<vector<uint64_t>> histograms;
 	vector<uint64_t> numberKmerDistinct,minimumList;
-	double frac(2);
+	double frac(1.3);
 	if(argc>2){
 		frac=stod(argv[3]);
 	}
