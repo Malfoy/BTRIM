@@ -311,7 +311,7 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 
 
 
-	cout<<"Paritioning"<<endl;
+	cout<<"\tParitioning"<<endl;
 	//PARTITIONING
 	string begin,end,unitig,useless,beginRc,endRc;
 	uint64_t hashBegin, hashBeginRc, hashEnd, hashEndRc;
@@ -361,7 +361,7 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 	}
 
 
-	cout<<"Tipping"<<endl;
+	cout<<"\tTipping"<<endl;
 	//TIPPING
 	//FOREACH FILE
 	#pragma omp parallel for num_threads(coreUsed)
@@ -501,7 +501,7 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 
 
 
-	cout<<"Recompaction"<<endl;
+	cout<<"\tRecompaction"<<endl;
 	//RECOMPACTION
 	#pragma omp parallel for num_threads(1)
 	for(uint i=0; i< nbFiles; ++i){
@@ -578,7 +578,7 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 
 	//OUTPUT
 	for(uint i(0); i<unitigs.size(); ++i){
-		if((not unitigs[i].empty()) and (unitigs[i].size()%2==0) and unitigThreshold>1 and coverages[i]>unitigThreshold){
+		if((not unitigs[i].empty()) and (unitigs[i].size()%2==0) and coverages[i]>=unitigThreshold){
 			out<<">km:f:"<<coverages[i]<<"\n";
 			out<<bool2str(unitigs[i])<<'\n';
 		}else{
@@ -587,13 +587,13 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 	}
 
 	if(unitigThreshold>1){
-		cout<<"Unitig filtered: "+intToString(unitigFiltered)<<endl;
+		cout<<"\tUnitig filtered: "+intToString(unitigFiltered)<<endl;
 	}
-	cout<<"Tips removed: "+intToString(tiping)<<endl;
-	cout<<"Unitigs compacted: "+intToString(compactions)<<endl;
+	cout<<"\tTips removed: "+intToString(tiping)<<endl;
+	cout<<"\tUnitigs compacted: "+intToString(compactions)<<endl;
 	auto endTime=system_clock::now();
     auto waitedFor=endTime-start;
-    cout<<"Cleaned in "<<duration_cast<seconds>(waitedFor).count()<<" seconds"<<endl;
+    cout<<"\nCleaned in "<<duration_cast<seconds>(waitedFor).count()<<" seconds"<<endl;
 }
 
 
@@ -651,6 +651,7 @@ int main(int argc, char ** argv){
 		}
 	}
 	for(uint i(1);i<=tipingStep;++i){
+		cout<<"Strep "<<i<<endl;
 		if(i==tipingStep){
 			cleaning( outFile,  inputUnitig, nbFiles, tipingSize, coreUsed, unitigThreshold, ratioCoverage, kmerSize);
 		}else{
