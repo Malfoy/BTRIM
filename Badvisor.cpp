@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
 	vector<vector<uint64_t>> histograms;
 	vector<uint64_t> numberKmerDistinct,minimumList;
 	double frac(1.3);
-	if(argc>2){
+	if(argc>3){
 		frac=stod(argv[3]);
 	}
 	for(uint k(21);k<201;k+=10){
@@ -74,9 +74,10 @@ int main(int argc, char *argv[]) {
 	bool cont(true);
 	for(uint i(0);i<histograms.size() and cont;++i){
 		for(uint ii(0);ii<histograms[i].size() and cont;++ii){
-			if(histograms[i][ii]<=histograms[i][ii+1]*frac){
+			if(histograms[i][ii]<histograms[i][ii+1]*frac){
 				if(ii>=coverageAsked){
 					minimumList.push_back(ii);
+
 				}else{
 					cont=false;
 				}
