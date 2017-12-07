@@ -287,7 +287,7 @@ void usage(){
 		<<"-T [Cleaning Step (1)]\n"
 		<<"-c [Core used (1)]\n"
 		<<"-h [Hash size, use 2^h files (8 for 256 files)]\n"
-		<<"-f [Unitig min coverage (none)]\n"
+		<<"-f [Unitig min coverage (none, 0 for auto)]\n"
 		<<"-a [Edge filtering ratio (none)]\n"
 		<<"-o [Output file (out_tipped)]\n"
 		<<endl;
@@ -316,6 +316,7 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 	string begin,end,unitig,useless,beginRc,endRc;
 	uint64_t hashBegin, hashBeginRc, hashEnd, hashEndRc;
 	uint32_t unitigIndice(0);
+	vector<uint> abundance_unitigs(100);
 	while(not inUnitigs.eof()){
 		getline(inUnitigs,useless);
 		unitig="";
@@ -324,13 +325,18 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 			continue;
 		}
 		uint coverage=parseCoverage(useless);
-		//~ if(unitigThreshold>1 and coverage<unitigThreshold){
-			//~ unitigFiltered++;
-			//~ continue;
-		//~ }
+		if(unitigThreshold>1 and coverage<unitigThreshold){
+			unitigFiltered++;
+			continue;
+		}
 		unitigs.push_back(str2bool(unitig));
 		//~ cout<<coverage<<endl;
 		coverages.push_back(coverage);
+		if(coverage<100){
+			abundance_unitigs[coverage]++;
+		}else{
+			abundance_unitigs[0]++;
+		}
 
 
 		begin=unitig.substr(0,kmerSize);
@@ -359,6 +365,28 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 		}
 		++unitigIndice;
 	}
+	if(unitigThreshold==0){
+		uint prev(0);
+		for(uint i(1);i< abundance_unitigs.size(); ++i){
+			if(prev!=0){
+				if(abundance_unitigs[i]>=prev){
+					unitigThreshold=i-1;
+					cout<<"	unitig threshold chosed: "<<unitigThreshold<<" "<<endl;
+					break;
+				}
+				prev=abundance_unitigs[i];
+			}else{
+				prev=abundance_unitigs[i];
+			}
+		}
+		for(uint i(0);i<unitigs.size();++i){
+			if(coverages[i]<unitigThreshold){
+				unitigs[i]={};
+			}
+		}
+
+	}
+
 
 
 	cout<<"\tTipping"<<endl;
@@ -651,7 +679,7 @@ int main(int argc, char ** argv){
 		}
 	}
 	for(uint i(1);i<=tipingStep;++i){
-		cout<<"Strep "<<i<<endl;
+		cout<<"Step "<<i<<endl;
 		if(i==tipingStep){
 			cleaning( outFile,  inputUnitig, nbFiles, tipingSize, coreUsed, unitigThreshold, ratioCoverage, kmerSize);
 		}else{
