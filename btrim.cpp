@@ -272,6 +272,9 @@ double parseCoverage(const string& str){
 	if(pos==string::npos){
 		pos=(str.find("KM:f:"));
 	}
+	if(pos==string::npos){
+		return 1;
+	}
 	uint i(1);
 	while(str[i+pos+5]!=' '){
 		++i;
