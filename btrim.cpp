@@ -582,7 +582,7 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 						str2=(bool2str(unitigs[position2]));
 						compacted=(compaction(str1,str2,kmerSize));
 						unitigs[position1]=str2bool(compacted);
-						coverages[position1]=(coverages[position1]*str1.size()+coverages[position2]*str2.size())/compacted.size();
+						coverages[position1]=(coverages[position1]*(str1.size()-kmerSize+1)+coverages[position2]*(str2.size()-kmerSize+1))/compacted.size();
 						unitigs[position2]=int2bool(position1);
 						compactions++;
 					}
