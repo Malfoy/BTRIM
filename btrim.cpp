@@ -371,10 +371,11 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 	if(unitigThreshold==0){
 		uint prev(0);
 		for(uint i(1);i< abundance_unitigs.size(); ++i){
+			cout<<abundance_unitigs[i]<<endl;
 			if(prev!=0){
 				if(abundance_unitigs[i]>=prev){
 					unitigThreshold=i-1;
-					cout<<"	unitig threshold chosed: "<<unitigThreshold<<" "<<endl;
+					cout<<"	Unitig threshold chosed: "<<unitigThreshold<<" "<<endl;
 					break;
 				}
 				prev=abundance_unitigs[i];
@@ -385,6 +386,8 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 		for(uint i(0);i<unitigs.size();++i){
 			if(coverages[i]<unitigThreshold){
 				unitigs[i]={};
+			}else{
+				break;
 			}
 		}
 
