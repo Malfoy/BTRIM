@@ -329,7 +329,7 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 			continue;
 		}
 		uint coverage=parseCoverage(useless);
-		if(unitigThreshold>1 and coverage<unitigThreshold and coverage>unitigThreshold_MAX){
+		if((unitigThreshold>1 and coverage<unitigThreshold) or coverage>unitigThreshold_MAX){
 			unitigFiltered++;
 			continue;
 		}
