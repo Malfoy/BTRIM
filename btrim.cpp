@@ -291,13 +291,14 @@ void usage(){
 		<<"-c [Core used (1)]\n"
 		<<"-h [Hash size, use 2^h files (8 for 256 files)]\n"
 		<<"-f [Unitig min coverage (none, 0 for auto)]\n"
+		<<"-m [Unitig max coverage (10 000)]\n"
 		<<"-a [Edge filtering ratio (none)]\n"
 		<<"-o [Output file (out_tipped)]\n"
 		<<endl;
 }
 
 
-void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int coreUsed,int unitigThreshold,int ratioCoverage,int kmerSize){
+void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int coreUsed,int unitigThreshold,int ratioCoverage,int kmerSize,int unitigThreshold_MAX){
 	auto start=system_clock::now();
 	uint64_t tiping(0),compactions(0),unitigFiltered(0);
 	ofstream out(outFile);
@@ -328,7 +329,7 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 			continue;
 		}
 		uint coverage=parseCoverage(useless);
-		if(unitigThreshold>1 and coverage<unitigThreshold){
+		if(unitigThreshold>1 and coverage<unitigThreshold and coverage>unitigThreshold_MAX){
 			unitigFiltered++;
 			continue;
 		}
@@ -390,7 +391,6 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 				break;
 			}
 		}
-
 	}
 
 
@@ -650,9 +650,10 @@ int main(int argc, char ** argv){
 	uint hashSize(8);//256 FILES
 	uint nbFiles(1<<(hashSize-1));
 	uint ratioCoverage(1);
+	uint unitigThreshold_MAX(10000);
 	string outFile("out_tipped");
 	char c;
-	while ((c = getopt (argc, argv, "u:k:t:c:h:f:a:o:T:")) != -1){
+	while ((c = getopt (argc, argv, "u:k:t:c:h:f:a:o:T:m:")) != -1){
 		switch(c){
 		case 'u':
 			inputUnitig=optarg;
@@ -676,6 +677,9 @@ int main(int argc, char ** argv){
 		case 'f':
 			unitigThreshold=stoi(optarg);
 			break;
+		case 'm':
+			unitigThreshold_MAX=stoi(optarg);
+			break;
 		case 'o':
 			outFile=optarg;
 			break;
@@ -687,9 +691,9 @@ int main(int argc, char ** argv){
 	for(uint i(1);i<=tipingStep;++i){
 		cout<<"Step "<<i<<endl;
 		if(i==tipingStep){
-			cleaning( outFile,  inputUnitig, nbFiles, tipingSize, coreUsed, unitigThreshold, ratioCoverage, kmerSize);
+			cleaning( outFile,  inputUnitig, nbFiles, tipingSize, coreUsed, unitigThreshold, ratioCoverage, kmerSize,unitigThreshold_MAX);
 		}else{
-			cleaning( outFile+to_string(i),  inputUnitig, nbFiles, tipingSize, coreUsed, unitigThreshold, ratioCoverage, kmerSize);
+			cleaning( outFile+to_string(i),  inputUnitig, nbFiles, tipingSize, coreUsed, unitigThreshold, ratioCoverage, kmerSize,unitigThreshold_MAX);
 			inputUnitig=outFile+to_string(i);
 		}
 	}
