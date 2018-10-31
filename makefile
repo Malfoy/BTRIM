@@ -14,14 +14,14 @@ LDFLAGS=-g
 endif
 
 
-EXEC=btrim bubble badvisor
+EXEC=btrim btt badvisor
 
 all: $(EXEC)
 
-bubble:   bubble.o
+btt:   btt.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-bubble.o:   btrimBubble.cpp
+btt.o:   btt.cpp
 	$(CC) -o $@ -c $< $(CFLAGS)
 
 badvisor:   badvisor.o

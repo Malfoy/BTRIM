@@ -300,7 +300,7 @@ void usage(){
 
 void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int coreUsed,int unitigThreshold,int ratioCoverage,int kmerSize,int unitigThreshold_MAX){
 	auto start=system_clock::now();
-	uint64_t tiping(0),compactions(0),unitigFiltered(0);
+	uint64_t tiping(0),compactions(0),unitigFiltered(0),advanced_tipping(0);
 	ofstream out(outFile);
 
 	ifstream inUnitigs(inputUnitig);
@@ -321,6 +321,7 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 	uint64_t hashBegin, hashBeginRc, hashEnd, hashEndRc;
 	uint32_t unitigIndice(0);
 	vector<uint> abundance_unitigs(100);
+
 	while(not inUnitigs.eof()){
 		getline(inUnitigs,useless);
 		unitig="";
@@ -392,150 +393,161 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 			}
 		}
 	}
-
+	vector<bool> isaTip(false,unitigs.size());
 
 
 	cout<<"\tTipping"<<endl;
 	//TIPPING
 	//FOREACH FILE
-	#pragma omp parallel for num_threads(coreUsed)
-	for(uint i=0; i< nbFiles; ++i){
-		string content,wordSeq,wordInt,seqBegin,seqEnd;
-		vector<pair<string,uint32_t>> beginVector,endVector;
-		uint32_t numberRead;
-		uint sizeFileBegin(beginFiles[i].tellg());
-		beginFiles[i].seekg(0,ios::beg);
-		content.resize(sizeFileBegin);
-		beginFiles[i].read(&content[0], content.size());
-		for(uint ii(0); ii<content.size(); ){
-			wordSeq=content.substr(ii,kmerSize);
-			wordInt=content.substr(ii+kmerSize,4);
-			memcpy(&numberRead,wordInt.c_str(),4);
-			beginVector.push_back({wordSeq,numberRead});
-			ii+=kmerSize+4;
-		}
-
-		uint sizeFileEnd(endFiles[i].tellg());
-		endFiles[i].seekg(0,ios::beg);
-		content.resize(sizeFileEnd);
-		endFiles[i].read(&content[0], content.size());
-		for(uint ii(0); ii<content.size(); ){
-			wordSeq=content.substr(ii,kmerSize);
-			wordInt=content.substr(ii+kmerSize,4);
-			memcpy(&numberRead,wordInt.c_str(),4);
-			endVector.push_back({wordSeq,numberRead});
-			ii+=kmerSize+4;
-		}
-		//~ cout<<"gosort"<<endl;
-		sort(beginVector.begin(), beginVector.end());
-		sort(endVector.begin(), endVector.end());
-		uint indiceBegin(0), indiceEnd(0);
-		vector<pair<uint,uint>> coverageComparison;
-		while( not(indiceBegin==beginVector.size() and indiceEnd==endVector.size())){
-			if(indiceBegin==beginVector.size()){
-				seqBegin="Z";
-			}else{
-				seqBegin=beginVector[indiceBegin].first;
+	for(uint iPass(0);iPass<2;++iPass){
+		#pragma omp parallel for num_threads(coreUsed)
+		for(uint i=0; i< nbFiles; ++i){
+			string content,wordSeq,wordInt,seqBegin,seqEnd;
+			vector<pair<string,uint32_t>> beginVector,endVector;
+			uint32_t numberRead;
+			uint sizeFileBegin(beginFiles[i].tellg());
+			beginFiles[i].seekg(0,ios::beg);
+			content.resize(sizeFileBegin);
+			beginFiles[i].read(&content[0], content.size());
+			for(uint ii(0); ii<content.size(); ){
+				wordSeq=content.substr(ii,kmerSize);
+				wordInt=content.substr(ii+kmerSize,4);
+				memcpy(&numberRead,wordInt.c_str(),4);
+				beginVector.push_back({wordSeq,numberRead});
+				ii+=kmerSize+4;
 			}
-			if(indiceEnd==endVector.size()){
-				seqEnd="Z";
-			}else{
-				seqEnd=endVector[indiceEnd].first;
-			}
-			if(seqBegin==seqEnd){
-				coverageComparison={};
-				//if two begin and one is ten time larger remove the lower
-				while(seqBegin==beginVector[indiceBegin].first){
-					if(ratioCoverage>1){
-						coverageComparison.push_back({coverages[beginVector[indiceBegin].second],beginVector[indiceBegin].second});
-					}
-					++indiceBegin;
-					//~ cout<<"go1"<<endl;
-					if(indiceBegin==beginVector.size()){
-						break;
-					}
-					//~ cout<<coverages.size()<<" "<< beginVector[indiceBegin].second <<endl;
 
-					//~ cout<<"go1.6"<<endl;
+			uint sizeFileEnd(endFiles[i].tellg());
+			endFiles[i].seekg(0,ios::beg);
+			content.resize(sizeFileEnd);
+			endFiles[i].read(&content[0], content.size());
+			for(uint ii(0); ii<content.size(); ){
+				wordSeq=content.substr(ii,kmerSize);
+				wordInt=content.substr(ii+kmerSize,4);
+				memcpy(&numberRead,wordInt.c_str(),4);
+				endVector.push_back({wordSeq,numberRead});
+				ii+=kmerSize+4;
+			}
+			sort(beginVector.begin(), beginVector.end());
+			sort(endVector.begin(), endVector.end());
+			vector<pair<uint,uint>> coverageComparison;
+
+			//~ cout<<"gomain"<<endl;
+			uint indiceBegin(0), indiceEnd(0);
+			while( not(indiceBegin==beginVector.size() and indiceEnd==endVector.size())){
+				if(indiceBegin==beginVector.size()){
+					seqBegin="Z";
+				}else{
+					seqBegin=beginVector[indiceBegin].first;
 				}
+				if(indiceEnd==endVector.size()){
+					seqEnd="Z";
+				}else{
+					seqEnd=endVector[indiceEnd].first;
+				}
+				//~ cout<<seqBegin<<" "<<seqEnd<<endl;
+				//~ cout<<"go Vlooop"<<iPass<<endl;
+				if(seqBegin==seqEnd){
+					coverageComparison={};
+					//if two begin and one is ten time larger remove the lower
+					while(seqBegin==beginVector[indiceBegin].first){
+						if(ratioCoverage>0){
+							coverageComparison.push_back({coverages[beginVector[indiceBegin].second],beginVector[indiceBegin].second});
+						}
+						++indiceBegin;
+						if(indiceBegin==beginVector.size()){
+							break;
+						}
+					}
 
-				if(coverageComparison.size()>1){
-					//~ cout<<"go2"<<endl;
-					sort(coverageComparison.begin(),coverageComparison.end());
-					//~ cout<<coverageComparison[0].first<<" "<<coverageComparison[1].first<<endl;
-					if(ratioCoverage*coverageComparison[0].first<coverageComparison[1].first){
-						//~ cout<<"go3"<<endl;
-						for(uint iii(1);iii<coverageComparison.size();++iii){
-							#pragma omp critical(dataupdate)
-							{
-								unitigs[coverageComparison[iii].second]={};
+					if(coverageComparison.size()>0){
+						sort(coverageComparison.begin(),coverageComparison.end());
+						for(uint iComp(0);iComp<coverageComparison.size()-1;++iComp){
+							//~ cout<<coverageComparison[iComp].first<<" "<<coverageComparison[coverageComparison.size()-1].first<<endl;
+							if(isaTip[coverageComparison[iComp].second]){
+
+								if(ratioCoverage*coverageComparison[iComp].first<coverageComparison[coverageComparison.size()-1].first){
+									#pragma omp critical(dataupdate)
+									{
+										unitigs[coverageComparison[iComp].second]={};
+										advanced_tipping++;
+									}
+								}
+							}else{
+								//~ cout<<"notip"<<endl;
 							}
 						}
 					}
-				}
 
-				coverageComparison={};
-				while(seqEnd==endVector[indiceEnd].first){
-					if(ratioCoverage>1){
-						coverageComparison.push_back({coverages[endVector[indiceEnd].second],endVector[indiceEnd].second});
+					coverageComparison={};
+					while(seqEnd==endVector[indiceEnd].first){
+						if(ratioCoverage>0){
+							coverageComparison.push_back({coverages[endVector[indiceEnd].second],endVector[indiceEnd].second});
+						}
+						++indiceEnd;
+						if(indiceEnd==endVector.size()){
+							break;
+						}
 					}
-					++indiceEnd;
-					if(indiceEnd==endVector.size()){
-						break;
-					}
 
-					//~ cout<<"go1.5"<<endl;
-				}
-
-				if(coverageComparison.size()>1){
-					//~ cout<<"go2"<<endl;
-					sort(coverageComparison.begin(),coverageComparison.end());
-					//~ cout<<coverageComparison[0].first<<" "<<coverageComparison[1].first<<endl;
-					if(ratioCoverage*coverageComparison[0].first<coverageComparison[1].first){
-						//~ cout<<"go3"<<endl;
-						for(uint iii(1);iii<coverageComparison.size();++iii){
-							#pragma omp critical(dataupdate)
-							{
-								unitigs[coverageComparison[iii].second]={};
+					if(coverageComparison.size()>0){
+						sort(coverageComparison.begin(),coverageComparison.end());
+						for(uint iComp(0);iComp<coverageComparison.size()-1;++iComp){
+							//~ cout<<coverageComparison[iComp].first<<" "<<coverageComparison[coverageComparison.size()-1].first<<endl;
+							if(isaTip[coverageComparison[iComp].second]){
+								if(ratioCoverage*coverageComparison[iComp].first<coverageComparison[coverageComparison.size()-1].first){
+									#pragma omp critical(dataupdate)
+									{
+										unitigs[coverageComparison[iComp].second]={};
+										advanced_tipping++;
+									}
+								}
+							}else{
+								//~ cout<<"notip"<<endl;
 							}
 						}
 					}
+					continue;
 				}
-				continue;
-			}
-			//~ cout<<"golop2"<<endl;
-			if(seqBegin<seqEnd){
-				while(seqBegin==beginVector[indiceBegin].first){
-					if(unitigs[beginVector[indiceBegin].second].size()<tipingSize and unitigs[beginVector[indiceBegin].second].size()>0){
-						#pragma omp critical(dataupdate)
-						{
-							++tiping;
-							unitigs[beginVector[indiceBegin].second]={};
+				//~ cout<<"GO TIPO"<<endl;
+				if(seqBegin<seqEnd){
+					//~ cout<<"T1"<<endl;
+					while(seqBegin==beginVector[indiceBegin].first){
+						if(unitigs[beginVector[indiceBegin].second].size()<tipingSize and unitigs[beginVector[indiceBegin].second].size()>0){
+							#pragma omp critical(dataupdate)
+							{
+								++tiping;
+								unitigs[beginVector[indiceBegin].second]={};
+							}
+						}
+						//~ cout<<"TIP"<<endl;
+						isaTip[beginVector[indiceBegin].second]=true;
+						++indiceBegin;
+						if(indiceBegin==beginVector.size()){
+							break;
 						}
 					}
-					++indiceBegin;
-					if(indiceBegin==beginVector.size()){
-						break;
-					}
+					continue;
 				}
-				continue;
-			}
-			//~ cout<<"golopp3"<<endl;
-			if(seqBegin>seqEnd){
-				while(seqEnd==endVector[indiceEnd].first){
-					if(unitigs[endVector[indiceEnd].second].size()<tipingSize and unitigs[endVector[indiceEnd].second].size()>0){
-						#pragma omp critical(dataupdate)
-						{
-							++tiping;
-							unitigs[endVector[indiceEnd].second]={};
+				if(seqBegin>seqEnd){
+					//~ cout<<"T2"<<endl;
+					while(seqEnd==endVector[indiceEnd].first){
+						if(unitigs[endVector[indiceEnd].second].size()<tipingSize and unitigs[endVector[indiceEnd].second].size()>0){
+							#pragma omp critical(dataupdate)
+							{
+								++tiping;
+								unitigs[endVector[indiceEnd].second]={};
+							}
+						}
+						//~ cout<<"TIP"<<endl;
+						isaTip[endVector[indiceEnd].second]=true;
+						++indiceEnd;
+						if(indiceEnd==endVector.size()){
+							break;
 						}
 					}
-					++indiceEnd;
-					if(indiceEnd==endVector.size()){
-						break;
-					}
+					continue;
 				}
-				continue;
 			}
 		}
 	}
@@ -631,6 +643,7 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 		cout<<"\tUnitig filtered: "+intToString(unitigFiltered)<<endl;
 	}
 	cout<<"\tTips removed: "+intToString(tiping)<<endl;
+	cout<<"\tADVANCED Tips removed: "+intToString(advanced_tipping)<<endl;
 	cout<<"\tUnitigs compacted: "+intToString(compactions)<<endl;
 	auto endTime=system_clock::now();
     auto waitedFor=endTime-start;
@@ -655,8 +668,8 @@ int main(int argc, char ** argv){
 	uint tipingStep(1);
 	uint coreUsed(1);
 	uint hashSize(8);//256 FILES
-	uint nbFiles(1<<(hashSize-1));
-	uint ratioCoverage(1);
+
+	uint ratioCoverage(0);
 	uint unitigThreshold_MAX(10000);
 	string outFile("out_tipped");
 	char c;
@@ -695,6 +708,7 @@ int main(int argc, char ** argv){
 			break;
 		}
 	}
+	uint nbFiles(1<<(hashSize-1));
 	for(uint i(1);i<=tipingStep;++i){
 		cout<<"Step "<<i<<endl;
 		if(i==tipingStep){
