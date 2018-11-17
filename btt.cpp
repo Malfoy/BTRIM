@@ -373,7 +373,7 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 	if(unitigThreshold==0){
 		uint prev(0);
 		for(uint i(1);i< abundance_unitigs.size(); ++i){
-			cout<<abundance_unitigs[i]<<endl;
+			//~ cout<<abundance_unitigs[i]<<endl;
 			if(prev!=0){
 				if(abundance_unitigs[i]>=prev){
 					unitigThreshold=i-1;
@@ -397,9 +397,9 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 
 
 	cout<<"\tTipping"<<endl;
-	//TIPPING
-	//FOREACH FILE
-	for(uint iPass(0);iPass<2;++iPass){
+	for(uint to=0; to< 2; ++to){
+		//TIPPING
+		//FOREACH FILE
 		#pragma omp parallel for num_threads(coreUsed)
 		for(uint i=0; i< nbFiles; ++i){
 			string content,wordSeq,wordInt,seqBegin,seqEnd;
@@ -432,9 +432,9 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 			sort(endVector.begin(), endVector.end());
 			vector<pair<uint,uint>> coverageComparison;
 
-			//~ cout<<"gomain"<<endl;
 			uint indiceBegin(0), indiceEnd(0);
 			while( not(indiceBegin==beginVector.size() and indiceEnd==endVector.size())){
+				//~ cout<<indiceBegin<<" "<<indiceEnd<<endl;
 				if(indiceBegin==beginVector.size()){
 					seqBegin="Z";
 				}else{
@@ -463,18 +463,19 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 					if(coverageComparison.size()>0){
 						sort(coverageComparison.begin(),coverageComparison.end());
 						for(uint iComp(0);iComp<coverageComparison.size()-1;++iComp){
-							//~ cout<<coverageComparison[iComp].first<<" "<<coverageComparison[coverageComparison.size()-1].first<<endl;
-							if(isaTip[coverageComparison[iComp].second]){
+							#pragma omp critical(dataupdate)
+							{
+								if(isaTip[coverageComparison[iComp].second]){
 
-								if(ratioCoverage*coverageComparison[iComp].first<coverageComparison[coverageComparison.size()-1].first){
-									#pragma omp critical(dataupdate)
-									{
-										unitigs[coverageComparison[iComp].second]={};
-										advanced_tipping++;
+									if(ratioCoverage*coverageComparison[iComp].first<coverageComparison[coverageComparison.size()-1].first){
+										//~ #pragma omp critical(dataupdate)
+										{
+											unitigs[coverageComparison[iComp].second]={};
+											advanced_tipping++;
+										}
 									}
+								}else{
 								}
-							}else{
-								//~ cout<<"notip"<<endl;
 							}
 						}
 					}
@@ -493,17 +494,18 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 					if(coverageComparison.size()>0){
 						sort(coverageComparison.begin(),coverageComparison.end());
 						for(uint iComp(0);iComp<coverageComparison.size()-1;++iComp){
-							//~ cout<<coverageComparison[iComp].first<<" "<<coverageComparison[coverageComparison.size()-1].first<<endl;
-							if(isaTip[coverageComparison[iComp].second]){
-								if(ratioCoverage*coverageComparison[iComp].first<coverageComparison[coverageComparison.size()-1].first){
-									#pragma omp critical(dataupdate)
-									{
-										unitigs[coverageComparison[iComp].second]={};
-										advanced_tipping++;
+							#pragma omp critical(dataupdate)
+							{
+								if(isaTip[coverageComparison[iComp].second]){
+									if(ratioCoverage*coverageComparison[iComp].first<coverageComparison[coverageComparison.size()-1].first){
+										//~ #pragma omp critical(dataupdate)
+										{
+											unitigs[coverageComparison[iComp].second]={};
+											advanced_tipping++;
+										}
 									}
+								}else{
 								}
-							}else{
-								//~ cout<<"notip"<<endl;
 							}
 						}
 					}
@@ -511,7 +513,6 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 				}
 				//~ cout<<"GO TIPO"<<endl;
 				if(seqBegin<seqEnd){
-					//~ cout<<"T1"<<endl;
 					while(seqBegin==beginVector[indiceBegin].first){
 						if(unitigs[beginVector[indiceBegin].second].size()<tipingSize and unitigs[beginVector[indiceBegin].second].size()>0){
 							#pragma omp critical(dataupdate)
@@ -521,7 +522,10 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 							}
 						}
 						//~ cout<<"TIP"<<endl;
-						isaTip[beginVector[indiceBegin].second]=true;
+						#pragma omp critical(dataupdate)
+						{
+							isaTip[beginVector[indiceBegin].second]=true;
+						}
 						++indiceBegin;
 						if(indiceBegin==beginVector.size()){
 							break;
@@ -539,8 +543,10 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 								unitigs[endVector[indiceEnd].second]={};
 							}
 						}
-						//~ cout<<"TIP"<<endl;
-						isaTip[endVector[indiceEnd].second]=true;
+						#pragma omp critical(dataupdate)
+						{
+							isaTip[endVector[indiceEnd].second]=true;
+						}
 						++indiceEnd;
 						if(indiceEnd==endVector.size()){
 							break;
