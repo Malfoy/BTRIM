@@ -1,5 +1,7 @@
 # BTRIM
 ## de Bruijn graph TRIMming tool
+[![License](http://img.shields.io/:license-affero-blue.svg)](http://www.gnu.org/licenses/agpl-3.0.en.html)
+
 
 This tool is made to remove "tips" (short dead ends) from a compacted de Bruijn graph.
 
