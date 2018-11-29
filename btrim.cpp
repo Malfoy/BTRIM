@@ -23,6 +23,7 @@
 #include <bitset>
 #include <chrono>
 #include <unistd.h>
+#include <stdio.h>
 
 
 
@@ -31,6 +32,54 @@
 using namespace std;
 using namespace chrono;
 
+
+void advice_ntcard(string readsFile,uint64_t coverageAsked, double frac){
+	string line,lineF0,lineF1;
+	vector<vector<uint64_t>> histograms;
+	vector<uint64_t> numberKmerDistinct,minimumList;
+	for(uint k(21);k<201;k+=10){
+		ifstream stream(readsFile+"_k"+to_string(k)+".hist");
+		if(not stream.is_open()){
+			//~ cout<<"no file "+readsFile+"_k"+to_string(k)+".hist"<<endl;
+			break;
+		}
+		getline(stream,lineF1,'	');
+		getline(stream,lineF1);
+		uint64_t F1(stol(lineF1));
+		if(F1==0){
+			break;
+		}
+		getline(stream,lineF0,'	');
+		lineF0="";
+		getline(stream,lineF0);
+		//~ uint64_t numberKmer(stoi(lineF1));
+		numberKmerDistinct.push_back(stol(lineF0));
+		vector<uint64_t> abundances;
+		while(not stream.eof()){
+			getline(stream,line,'	');
+			getline(stream,line);
+			if(line.size()>0){
+				abundances.push_back(stol(line));
+			}
+		}
+		histograms.push_back(abundances);
+	}
+	bool cont(true);
+	for(uint i(0);i<histograms.size() and cont;++i){
+		for(uint ii(0);ii<histograms[i].size() and cont;++ii){
+			if(histograms[i][ii]<histograms[i][ii+1]*frac){
+				if(ii>=coverageAsked){
+					minimumList.push_back(ii);
+
+				}else{
+					cont=false;
+				}
+				break;
+			}
+		}
+	}
+	cout<<minimumList.size()*10+21<<flush;
+}
 
 
 
@@ -300,7 +349,7 @@ void usage(){
 
 void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int coreUsed,int unitigThreshold,int ratioCoverage,int kmerSize,int unitigThreshold_MAX){
 	auto start=system_clock::now();
-	uint64_t tiping(0),compactions(0),unitigFiltered(0),advanced_tipping(0);
+	uint64_t tiping(0),compactions(0),unitigFiltered(0),advanced_tipping(0),island(0),bulles(0);
 	ofstream out(outFile);
 
 	ifstream inUnitigs(inputUnitig);
@@ -392,7 +441,9 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 			}
 		}
 	}
-		vector<bool> isaTip(false,unitigs.size());
+	vector<bool> isaTip(unitigs.size(),false);
+	vector<bool> isaTipL(unitigs.size(),false);
+	vector<bool> isaTipR(unitigs.size(),false);
 
 
 
@@ -453,7 +504,9 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 				//if two begin and one is ten time larger remove the lower
 				while(seqBegin==beginVector[indiceBegin].first){
 					if(ratioCoverage>0){
-						coverageComparison.push_back({coverages[beginVector[indiceBegin].second],beginVector[indiceBegin].second});
+						if(unitigs[beginVector[indiceBegin].second].size()!=0){
+							coverageComparison.push_back({coverages[beginVector[indiceBegin].second], abs(beginVector[indiceBegin].second)});
+						}
 					}
 					++indiceBegin;
 					if(indiceBegin==beginVector.size()){
@@ -465,6 +518,8 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 					sort(coverageComparison.begin(),coverageComparison.end());
 					for(uint iComp(0);iComp<coverageComparison.size()-1;++iComp){
 						if(isaTip[coverageComparison[iComp].second]){
+							//~ cout<<ratioCoverage*coverageComparison[iComp].first<<" "<<coverageComparison[coverageComparison.size()-1].first<<endl;
+							//~ cout<<"wtf"<<coverageComparison[iComp].second<<" "<<unitigs.size()<<endl;
 							if(ratioCoverage*coverageComparison[iComp].first<coverageComparison[coverageComparison.size()-1].first){
 								#pragma omp critical(dataupdate)
 								{
@@ -473,14 +528,27 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 								}
 							}
 						}else{
+							if(coverageComparison.size()==2){
+							if(ratioCoverage*coverageComparison[iComp].first<coverageComparison[coverageComparison.size()-1].first and coverageComparison[iComp].first<5){
+								string lowB(bool2str(unitigs[coverageComparison[iComp].second]));
+								string highB(bool2str(unitigs[coverageComparison[coverageComparison.size()-1].second]));
+								if(lowB.substr(lowB.size()-kmerSize)==highB.substr(highB.size()-kmerSize)){
+									unitigs[coverageComparison[iComp].second]={};
+									bulles++;
+								}
+							}
 						}
+						}
+
 					}
 				}
 
 				coverageComparison={};
 				while(seqEnd==endVector[indiceEnd].first){
 					if(ratioCoverage>0){
-						coverageComparison.push_back({coverages[endVector[indiceEnd].second],endVector[indiceEnd].second});
+						if(unitigs[endVector[indiceEnd].second].size()!=0){
+							coverageComparison.push_back({coverages[endVector[indiceEnd].second],abs(endVector[indiceEnd].second)});
+						}
 					}
 					++indiceEnd;
 					if(indiceEnd==endVector.size()){
@@ -500,18 +568,40 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 								}
 							}
 						}else{
+							if(coverageComparison.size()==2){
+								if(ratioCoverage*coverageComparison[iComp].first<coverageComparison[coverageComparison.size()-1].first and coverageComparison[iComp].first<5 ){
+									string lowB(bool2str(unitigs[coverageComparison[iComp].second]));
+									string highB(bool2str(unitigs[coverageComparison[coverageComparison.size()-1].second]));
+									if(lowB.substr(lowB.size()-kmerSize)==highB.substr(highB.size()-kmerSize)){
+										unitigs[coverageComparison[iComp].second]={};
+										bulles++;
+									}
+								}
+							}
 						}
+
 					}
 				}
 			}
 			//~ cout<<"golop2"<<endl;
 			if(seqBegin<seqEnd){
 				while(seqBegin==beginVector[indiceBegin].first){
-					if(unitigs[beginVector[indiceBegin].second].size()<tipingSize and unitigs[beginVector[indiceBegin].second].size()>0){
+
+					if(unitigs[beginVector[indiceBegin].second].size()<tipingSize and unitigs[beginVector[indiceBegin].second].size()>0 and abundance_unitigs[beginVector[indiceBegin].second]<4){
 						#pragma omp critical(dataupdate)
 						{
 							++tiping;
 							unitigs[beginVector[indiceBegin].second]={};
+						}
+					}else{
+						isaTip[beginVector[indiceBegin].second]=true;
+						isaTipR[beginVector[indiceBegin].second]=true;
+						if(isaTipL[beginVector[indiceBegin].second]){
+							#pragma omp critical(dataupdate)
+							{
+								unitigs[beginVector[indiceBegin].second]={};
+								island++;
+							}
 						}
 					}
 					++indiceBegin;
@@ -524,11 +614,21 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 			//~ cout<<"golopp3"<<endl;
 			if(seqBegin>seqEnd){
 				while(seqEnd==endVector[indiceEnd].first){
-					if(unitigs[endVector[indiceEnd].second].size()<tipingSize and unitigs[endVector[indiceEnd].second].size()>0){
+					if(unitigs[endVector[indiceEnd].second].size()<tipingSize and unitigs[endVector[indiceEnd].second].size()>0 and abundance_unitigs[endVector[indiceEnd].second]<4){
 						#pragma omp critical(dataupdate)
 						{
 							++tiping;
 							unitigs[endVector[indiceEnd].second]={};
+						}
+					}else{
+						isaTip[endVector[indiceEnd].second]=true;
+						isaTipR[endVector[indiceEnd].second]=true;
+						if(isaTipR[endVector[indiceEnd].second]){
+							#pragma omp critical(dataupdate)
+							{
+								unitigs[endVector[indiceEnd].second]={};
+								island++;
+							}
 						}
 					}
 					++indiceEnd;
@@ -634,6 +734,8 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 	}
 	cout<<"\tTips removed: "+intToString(tiping)<<endl;
 	cout<<"\tADVANCED Tips removed: "+intToString(advanced_tipping)<<endl;
+	cout<<"\tIslands removed: "+intToString(island)<<endl;
+	cout<<"\tBulle removed: "+intToString(bulles)<<endl;
 	cout<<"\tUnitigs compacted: "+intToString(compactions)<<endl;
 
 	auto endTime=system_clock::now();
@@ -647,9 +749,16 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 //ONE FUNCTION TO RULE THEM ALL
 int main(int argc, char ** argv){
 	//INIT
-	if(argc<3){
+	if(argc<2){
 		usage();
 		exit(0);
+	}
+	if(string(argv[1])=="badvisor"){
+		string readsFile(argv[2]);
+		uint64_t coverageAsked(stol(argv[3]));
+		double frac_variation (stof(argv[4]));
+		advice_ntcard( readsFile, coverageAsked,  frac_variation);
+		return 0;
 	}
 	int unitigThreshold(1);
 	string inputUnitig;
@@ -664,7 +773,7 @@ int main(int argc, char ** argv){
 	uint unitigThreshold_MAX(0);
 	string outFile("out_tipped");
 	char c;
-	while ((c = getopt (argc, argv, "u:k:t:c:h:f:a:o:T:m:")) != -1){
+	while ((c = getopt (argc, argv, "u:k:t:c:h:f:a:o:T:m:F:")) != -1){
 		switch(c){
 		case 'u':
 			inputUnitig=optarg;
@@ -703,9 +812,16 @@ int main(int argc, char ** argv){
 		cout<<"Step "<<i<<endl;
 		if(i==tipingStep){
 			cleaning( outFile,  inputUnitig, nbFiles, tipingSize, coreUsed, unitigThreshold, ratioCoverage, kmerSize,unitigThreshold_MAX);
+			if(i>1){
+				remove((outFile+to_string(i-1)).c_str());
+
+			}
 		}else{
 			cleaning( outFile+to_string(i),  inputUnitig, nbFiles, tipingSize, coreUsed, unitigThreshold, ratioCoverage, kmerSize,unitigThreshold_MAX);
 			inputUnitig=outFile+to_string(i);
+			if(i>1){
+				remove((outFile+to_string(i-1)).c_str());
+			}
 		}
 	}
 

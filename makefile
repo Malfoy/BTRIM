@@ -14,7 +14,7 @@ LDFLAGS=-g
 endif
 
 
-EXEC=btrim badvisor
+EXEC=btrim
 
 all: $(EXEC)
 
