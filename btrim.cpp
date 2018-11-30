@@ -355,8 +355,8 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 	ifstream inUnitigs(inputUnitig);
 	vector<fstream> beginFiles(nbFiles),endFiles(nbFiles);
 	for(uint i(0); i< nbFiles; ++i){
-		beginFiles[i].open(".begin"+to_string(i),fstream::out|fstream::in|fstream::binary|fstream::trunc);
-		endFiles[i].open(".end"+to_string(i),fstream::out|fstream::in|fstream::binary|fstream::trunc);
+		beginFiles[i].open(".begin"+inputUnitig+to_string(i),fstream::out|fstream::in|fstream::binary|fstream::trunc);
+		endFiles[i].open(".end"+inputUnitig+to_string(i),fstream::out|fstream::in|fstream::binary|fstream::trunc);
 	}
 	//THIS MEMORY USAGE CAN BE REMOVED
 	vector<vector<bool>> unitigs;
@@ -693,8 +693,8 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 				continue;
 			}
 		}
-		remove((".begin"+to_string(i)).c_str());
-		remove((".end"+to_string(i)).c_str());
+		remove((".begin"+inputUnitig+to_string(i)).c_str());
+		remove((".end"+inputUnitig+to_string(i)).c_str());
 	}
 
 	//OUTPUT
