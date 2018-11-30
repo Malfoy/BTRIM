@@ -483,7 +483,6 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 			endVector.push_back({wordSeq,numberRead});
 			ii+=kmerSize+4;
 		}
-		//~ cout<<"gosort"<<endl;
 		sort(beginVector.begin(), beginVector.end());
 		sort(endVector.begin(), endVector.end());
 		uint indiceBegin(0), indiceEnd(0);
@@ -517,9 +516,8 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 				if(coverageComparison.size()>0){
 					sort(coverageComparison.begin(),coverageComparison.end());
 					for(uint iComp(0);iComp<coverageComparison.size()-1;++iComp){
-						if(isaTip[coverageComparison[iComp].second]){
-							//~ cout<<ratioCoverage*coverageComparison[iComp].first<<" "<<coverageComparison[coverageComparison.size()-1].first<<endl;
-							//~ cout<<"wtf"<<coverageComparison[iComp].second<<" "<<unitigs.size()<<endl;
+						//~ if(isaTip[coverageComparison[iComp].second]){
+						if(true){
 							if(ratioCoverage*coverageComparison[iComp].first<coverageComparison[coverageComparison.size()-1].first){
 								#pragma omp critical(dataupdate)
 								{
@@ -559,7 +557,8 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 				if(coverageComparison.size()>0){
 					sort(coverageComparison.begin(),coverageComparison.end());
 					for(uint iComp(0);iComp<coverageComparison.size()-1;++iComp){
-						if(isaTip[coverageComparison[iComp].second]){
+						//~ if(isaTip[coverageComparison[iComp].second]){
+						if(true){
 							if(ratioCoverage*coverageComparison[iComp].first<coverageComparison[coverageComparison.size()-1].first){
 								#pragma omp critical(dataupdate)
 								{
@@ -583,25 +582,13 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 					}
 				}
 			}
-			//~ cout<<"golop2"<<endl;
 			if(seqBegin<seqEnd){
 				while(seqBegin==beginVector[indiceBegin].first){
-
-					if(unitigs[beginVector[indiceBegin].second].size()<tipingSize and unitigs[beginVector[indiceBegin].second].size()>0 and abundance_unitigs[beginVector[indiceBegin].second]<4){
+					if(unitigs[beginVector[indiceBegin].second].size()<tipingSize and unitigs[beginVector[indiceBegin].second].size()>0){
 						#pragma omp critical(dataupdate)
 						{
 							++tiping;
 							unitigs[beginVector[indiceBegin].second]={};
-						}
-					}else{
-						isaTip[beginVector[indiceBegin].second]=true;
-						isaTipR[beginVector[indiceBegin].second]=true;
-						if(isaTipL[beginVector[indiceBegin].second]){
-							#pragma omp critical(dataupdate)
-							{
-								unitigs[beginVector[indiceBegin].second]={};
-								island++;
-							}
 						}
 					}
 					++indiceBegin;
@@ -611,23 +598,14 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 				}
 				continue;
 			}
-			//~ cout<<"golopp3"<<endl;
 			if(seqBegin>seqEnd){
 				while(seqEnd==endVector[indiceEnd].first){
-					if(unitigs[endVector[indiceEnd].second].size()<tipingSize and unitigs[endVector[indiceEnd].second].size()>0 and abundance_unitigs[endVector[indiceEnd].second]<4){
-						#pragma omp critical(dataupdate)
-						{
-							++tiping;
-							unitigs[endVector[indiceEnd].second]={};
-						}
-					}else{
-						isaTip[endVector[indiceEnd].second]=true;
-						isaTipR[endVector[indiceEnd].second]=true;
-						if(isaTipR[endVector[indiceEnd].second]){
+					if(unitigs[endVector[indiceEnd].second].size()<tipingSize){
+						if(unitigs[endVector[indiceEnd].second].size()>0){
 							#pragma omp critical(dataupdate)
 							{
+								++tiping;
 								unitigs[endVector[indiceEnd].second]={};
-								island++;
 							}
 						}
 					}
@@ -697,7 +675,7 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 						str2=(bool2str(unitigs[position2]));
 						compacted=(compaction(str1,str2,kmerSize));
 						unitigs[position1]=str2bool(compacted);
-						coverages[position1]=(coverages[position1]*(str1.size()-kmerSize+1)+coverages[position2]*(str2.size()-kmerSize+1))/(compacted.size()-kmerSize+1);
+						coverages[position1]=(double)((coverages[position1]*(str1.size()-kmerSize))+(coverages[position2]*(str2.size()-kmerSize)))/(compacted.size()-kmerSize);
 						unitigs[position2]=int2bool(position1);
 						compactions++;
 					}
@@ -725,7 +703,6 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 			out<<">km:f:"<<coverages[i]<<"\n";
 			out<<bool2str(unitigs[i])<<'\n';
 		}else{
-			unitigFiltered++;
 		}
 	}
 
@@ -733,8 +710,7 @@ void cleaning(string outFile, string inputUnitig,int nbFiles,int tipingSize,int 
 		cout<<"\tUnitig filtered: "+intToString(unitigFiltered)<<endl;
 	}
 	cout<<"\tTips removed: "+intToString(tiping)<<endl;
-	cout<<"\tADVANCED Tips removed: "+intToString(advanced_tipping)<<endl;
-	cout<<"\tIslands removed: "+intToString(island)<<endl;
+	cout<<"\tSpurious edges removed: "+intToString(advanced_tipping)<<endl;
 	cout<<"\tBulle removed: "+intToString(bulles)<<endl;
 	cout<<"\tUnitigs compacted: "+intToString(compactions)<<endl;
 
@@ -818,6 +794,7 @@ int main(int argc, char ** argv){
 			}
 		}else{
 			cleaning( outFile+to_string(i),  inputUnitig, nbFiles, tipingSize, coreUsed, unitigThreshold, ratioCoverage, kmerSize,unitigThreshold_MAX);
+			//~ unitigThreshold=1;
 			inputUnitig=outFile+to_string(i);
 			if(i>1){
 				remove((outFile+to_string(i-1)).c_str());
